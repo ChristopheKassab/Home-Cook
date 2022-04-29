@@ -1,0 +1,252 @@
+const Postgres = require('postgres');
+/* HTTPS PATHS */
+const recipesPath = '/recipes';
+const recipesArabicPath = '/recipesarabic';
+const ingredientsDishPath = '/ingredientsdish';
+const ingredientsDishArabicPath = '/ingredientsdisharabic';
+const recommenddishPath = '/recommenddish';
+const basedOnDietPath = '/basedondiet';
+const basedOnDietArabicPath = '/basedondietarabic';
+const basedOnWeatherPath = '/basedonweather';
+const basedOnWeatherArabicPath = '/basedonweatherarabic';
+const recipeImagePath = '/recipeimages';
+const recipeImageArabicPath = '/recipearabicimages';
+const basedOnTimeOfDayPath = '/basedontimeofday';
+const basedOnTimeOfDayArabicPath = '/basedontimeofdayarabic';
+const insertIngredientFridge = '/insertingredientfridge';
+const insertIngredientFridgeAR = '/insertingfridgear';
+const deleteIngredientFridge = '/deleteingredientfridge';
+const deleteIngFridgeAR = '/deleteingfridgear';
+const checkMissingIngredientsPath = '/checkmissingingredients';
+const checkMissingIngredientsArabicPath = '/checkmissingingar';
+const checkAvailableIngredient = '/checkavailableingredient';
+const checkAvailableIngredientARPath = '/checkavailableingar';
+const insertIngredientShoppingList = '/insertingredientshoppinglist';
+const insertIngShListAR = '/insertingshoplistar';
+const deleteIngredientShoppingList = '/deleteingshoppinglist';
+const deleteIngShopListAR = '/deleteingshoplistar';
+const getAllShopList = '/getallshoplist';
+const getAllShopListAR = '/getallshoplistar';
+const getAllFridgeItems = '/getallfridgeitems';
+const getAllFridgeItemsAR = '/getallfridgeitemsar';
+const insertFridgeMail = '/insertfridgemail';
+const insertshopListMail = '/insertshoplistmail';
+/* CONNECTION */
+const sql = Postgres({
+  host: 'newalexahomecookdb.ch8t2szwvqrk.us-west-2.rds.amazonaws.com',
+  port: 5432,
+  username: 'homecookwriter',
+  password: 'homecookaub456',
+  database: 'homecook',
+  debug: (c, q, ...params) => {
+    console.log('conn ' + c + ' query: `' + q + '`\nparams:', params);
+  }
+});
+/* ID and NAME GETTERS */
+async function getRecipeID(recipename) {
+  const res = await sql.begin(tsql => tsql`select recipid from recipe where lower(recipename) = lower (${recipename})`);
+  return res;
+}
+async function getIngredientID(ingredientname) {
+  const res = await sql.begin(tsql => tsql `select ingredientid from ingredient where lower(ingredientname) = lower(${ingredientname})`);
+  return res;
+}
+async function getIngredientIDAR(ingredientname_arabic) {
+  const res = await sql.begin(tsql => tsql `select ingredientid from ingredient where lower(ingredientname_arabic) = lower(${ingredientname_arabic})`);
+  return res;
+}
+async function getFridgeID(fridgename) {
+  const res = await sql.begin(tsql => tsql`select fridgeid from fridge where lower(fridgename) = lower(${fridgename})`);
+  return res;
+}
+async function getShoppingListID(shoppinglistname) {
+  const res = await sql.begin(tsql => tsql`select shoppinglistid from shoppinglist where lower(shoppinglistname) = lower(${shoppinglistname})`);
+  return res;
+}
+async function getFridgeIngredientName(fridgeid) {
+  const res = await sql.begin(tsql => tsql `select i.ingredientname from ingredient r join fridge_ingredient ri on (r.ingredientid = ri.ingredientid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where fridgeid = ${fridgeid}`);
+  return res;
+}
+async function getFridgeIngredientNameAR(fridgeid) {
+  const res = await sql.begin(tsql => tsql `select i.ingredientname_arabic from ingredient r join fridge_ingredient ri on (r.ingredientid = ri.ingredientid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where fridgeid = ${fridgeid}`);
+  return res;
+}
+async function getShopListIngredientName(shoppinglistid) {
+  const res = await sql.begin(tsql => tsql `select i.ingredientname from ingredient r join shoppinglist_ingredient ri on (r.ingredientid = ri.ingredientid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where shoppinglistid = ${shoppinglistid}`);
+  return res;
+}
+async function getShopListIngredientNameAR(shoppinglistid) {
+  const res = await sql.begin(tsql => tsql `select i.ingredientname_arabic from ingredient r join shoppinglist_ingredient ri on (r.ingredientid = ri.ingredientid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where shoppinglistid = ${shoppinglistid}`);
+  return res;
+}
+/* INSERTIONS */
+async function insertFridgeIngredient(ingredientID, fridgeID) {
+  await sql.begin(tsql => tsql`INSERT INTO fridge_ingredient(ingredientid, fridgeid) VALUES (${ingredientID}, ${fridgeID})`);
+}
+async function insertFridgeName(mail) {
+  await sql.begin(tsql => tsql`INSERT INTO fridge(fridgename) VALUES (${mail})`);
+}
+async function insertShoppingListName(mail) {
+  await sql.begin(tsql => tsql`INSERT INTO shoppinglist(shoppinglistname) VALUES (${mail})`);
+}
+async function insertShoppingListIngredient(ingredientID, shoppingListID) {
+  await sql.begin(tsql => tsql`INSERT INTO shoppinglist_ingredient (ingredientid, shoppinglistid) VALUES (${ingredientID}, ${shoppingListID})`);
+}
+/* DELETIONS */
+async function deleteFridgeIngredient(ingredientID, fridgeID) {
+  await sql.begin(tsql => tsql`DELETE FROM fridge_ingredient where ingredientid = ${ingredientID} and fridgeid = ${fridgeID}`);
+}
+async function deleteShoppingListIngredient(ingredientID, shoppingListID) {
+  await sql.begin(tsql => tsql`DELETE FROM shoppinglist_ingredient where ingredientid = ${ingredientID} and shoppinglistid = ${shoppingListID}`);
+}
+/* GETTERS */
+async function getRecipes() {
+  const res = await sql.begin(tsql => tsql`select recipename from recipe`);
+  return res;
+}
+async function getRecipesArabic() {
+  const res = await sql.begin(tsql => tsql`select recipename_arabic from recipe`);
+  return res;
+}
+async function getIngredient(recipename) {
+  const res = await sql.begin(tsql => tsql`select i.ingredientname from recipe r join recipe_ingredient ri on (r.recipeid = ri.recipeid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where lower(recipename) = lower(${recipename})`);
+  return res;
+}
+async function getIngredientAR(recipename_arabic) {
+  const res = await sql.begin(tsql => tsql`select i.ingredientname_arabic from recipe r join recipe_ingredient ri on (r.recipeid = ri.recipeid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where lower(recipename_arabic) = lower(${recipename_arabic})`);
+  return res;
+}
+async function getImage(recipename) {
+  const res = await sql.begin(tsql => tsql`select i.url from recipe r join recipe_photo ri on (r.recipeid = ri.recipeid)
+                  join photo i on (ri.photoid = i.photoid) where lower(recipename) = lower(${recipename})`);
+  return res;
+}
+async function getImageArabic(recipename_arabic) {
+  const res = await sql.begin(tsql => tsql`select i.url from recipe r join recipe_photo ri on (r.recipeid = ri.recipeid)
+                  join photo i on (ri.photoid = i.photoid) where lower(recipename_arabic) = lower(${recipename_arabic})`);
+  return res;
+}
+async function getIngredientArabic(recipename) {
+  const res = await sql.begin(tsql => tsql`select i.ingredientname_arabic from recipe r join recipe_ingredient ri on (r.recipeid = ri.recipeid)
+                  join ingredient i on (ri.ingredientid = i.ingredientid) where recipename_arabic = ${recipename}`);
+  return res;
+}
+async function getfromDiet(dietname) {
+  const res = await sql.begin(tsql => tsql`select i.recipename from diet r join recipe_diet rw on (r.dietid = rw.dietid)
+join recipe i on (rw.recipeid = i.recipeid) where lower(dietname) = lower(${dietname})`);
+  return res;
+}
+async function getfromDietArabic(dietname) {
+  const res = await sql.begin(tsql => tsql`select i.recipename_arabic from diet r join recipe_diet rw on (r.dietid = rw.dietid)
+join recipe i on (rw.recipeid = i.recipeid) where dietname_arabic = ${dietname}`);
+  return res;
+}
+async function getfromTimeOfDay(timeofdayname) {
+  const res = await sql.begin(tsql => tsql`select i.recipename from timeofday r join recipe_timeofday rw on (r.timeofdayid = rw.timeofdayid)
+join recipe i on (rw.recipeid = i.recipeid) where lower(timeofdayname) = lower(${timeofdayname})`);
+  return res;
+}
+async function getfromTimeOfDayArabic(timeofdayname_arabic) {
+  const res = await sql.begin(tsql => tsql`select i.recipename_arabic from timeofday r join recipe_timeofday rw on (r.timeofdayid = rw.timeofdayid)
+join recipe i on (rw.recipeid = i.recipeid) where timeofdayname_arabic = ${timeofdayname_arabic}`);
+  return res;
+}
+async function getfromWeather(weathername) {
+  const res = await sql.begin(tsql => tsql`select i.recipename from weather r join recipe_weather rw on (r.weatherid = rw.weatherid)
+join recipe i on (rw.recipeid = i.recipeid) where lower(weathername) = lower(${weathername})`);
+  return res;
+}
+async function getfromWeatherArabic(weathername) {
+  const res = await sql.begin(tsql => tsql`select i.recipename_arabic from weather r join recipe_weather rw on (r.weatherid = rw.weatherid)
+join recipe i on (rw.recipeid = i.recipeid) where weathername_arabic = ${weathername}`);
+  return res;
+}
+function buildResponse(statusCode, body) {
+  return {
+    statusCode: statusCode,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  };
+}
+exports.handler = async (event) => {
+  console.log('Request event: ', event);
+  let response;
+  let result;
+  switch (true) {
+    
+    
+    case event.httpMethod === 'GET' && event.path === ingredientsDishPath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.recipeName) {
+        let body = await getIngredient(event.queryStringParameters.recipeName);
+        response = buildResponse(200, body);
+      }
+      else {
+        response = buildResponse(400, 'No Recipe passed');
+      }
+      break;
+    case event.httpMethod === 'GET' && event.path === recipeImagePath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.recipeimage) {
+        let body = await getImage(event.queryStringParameters.recipeimage);
+        response = buildResponse(200, body[0]);
+      }
+      else {
+        response = buildResponse(400, 'No Recipe passed');
+      }
+      break;
+      
+     case event.httpMethod === 'GET' && event.path === recipeImageArabicPath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.recipeimageAR) {
+        let body = await getImageArabic(event.queryStringParameters.recipeimageAR);
+        response = buildResponse(200, body[0]);
+      }
+      else {
+        response = buildResponse(400, 'No Recipe passed');
+      }
+      break;
+    case event.httpMethod === 'GET' && event.path === recipesPath:
+      result = await getRecipes();
+      response = buildResponse(200, { result });
+      break;
+    case event.httpMethod === 'GET' && event.path === recipesArabicPath:
+      result = await getRecipesArabic();
+      const randomIndexa = Math.floor(Math.random() * result.count);
+      const recipenamea = result[randomIndexa];
+      response = buildResponse(200, recipenamea);
+      break;
+    case event.httpMethod === 'GET' && event.path === recommenddishPath:
+      result = await getRecipes();
+      const randomIndex = Math.floor(Math.random() * result.count);
+      const recipename = result[randomIndex];
+      response = buildResponse(200, recipename);
+      break;
+    case event.httpMethod === 'GET' && event.path === ingredientsDishArabicPath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.recipeName) {
+        let body = await getIngredientArabic(event.queryStringParameters.recipeName);
+        response = buildResponse(200, body);
+      }
+      else {
+        response = buildResponse(400, 'No Recipe passed');
+      }
+      break;
+    case event.httpMethod === 'GET' && event.path === basedOnDietPath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.dietName) {
+        let body = await getfromDiet(event.queryStringParameters.dietName);
+        const randomIndex_diet = Math.floor(Math.random() * body.count);
+        const recipename_diet = body[randomIndex_diet];
+        response = buildResponse(200, recipename_diet);
+      }
+      else {
+        response = buildResponse(400, 'No Diet passed');
+      }
+      break;
+    case event.httpMethod === 'GET' && event.path === basedOnWeatherPath:
+      if (!!event.queryStringParameters && !!event.queryStringParameters.weatherName) {
+        let body = await getfromWeather(event.queryStr...
